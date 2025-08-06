@@ -2,6 +2,8 @@
 
 A simple, powerful web-based tool for merging Excel files while preserving manual data entries. **Perfect for Vanta.com access exports and compliance workflows!**
 
+![xlmerg Interface](https://github.com/user-attachments/assets/5831db23-1a64-470f-882e-0b38bf32e955)
+
 ## 🎯 **Perfect for Vanta.com Users:**
 
 ### **Weekly Access Reviews Made Easy:**
