@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xlmerg - Excel Row-by-Row Merger</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 5px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+        
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .github-link {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .github-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .upload-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .file-drop {
+            border: 3px dashed #e0e0e0;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #fafafa;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .file-drop:hover {
+            border-color: #4facfe;
+            background: #f0f8ff;
+            transform: translateY(-2px);
+        }
+        
+        .file-drop.dragover {
+            border-color: #00f2fe;
+            background: #e6f7ff;
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+        }
+        
+        .file-drop.has-file {
+            border-color: #52c41a;
+            background: #f6ffed;
+            border-style: solid;
+        }
+        
+        .file-drop input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .file-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            color: #4facfe;
+        }
+        
+        .file-drop.has-file .file-icon {
+            color: #52c41a;
+        }
+        
+        .file-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .file-help {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .config-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .config-item label {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .config-item input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .config-note {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #4facfe;
+        }
+        
+        .merge-section {
+            text-align: center;
+            margin: 40px 0;
+        }
+        
+        .merge-button {
+            background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(82, 196, 26, 0.3);
+        }
+        
+        .merge-button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(82, 196, 26, 0.4);
+        }
+        
+        .merge-button:disabled {
+            background: #d9d9d9;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .progress-container {
+            display: none;
+            margin: 30px 0;
+        }
+        
+        .progress-bar {
+            background: #f0f0f0;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .results {
+            display: none;
+            margin-top: 40px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            border-left: 5px solid #4facfe;
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #4facfe;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .changes-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .changes-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .changes-header h3 {
+            color: #333;
+            margin-left: 10px;
+        }
+        
+        .change-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border-left: 4px solid;
+            background: #f8f9fa;
+        }
+        
+        .change-updated {
+            border-left-color: #faad14;
+            background: #fffbe6;
+        }
+        
+        .change-new {
+            border-left-color: #52c41a;
+            background: #f6ffed;
+        }
+        
+        .download-section {
+            background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .download-button {
+            background: white;
+            color: #52c41a;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+        
+        .download-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .footer a {
+            color: #4facfe;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .upload-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .legend {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .github-link {
+                position: static;
+                display: inline-block;
+                margin-top: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="https://github.com/iinaveedahmed/xlmerg" class="github-link" target="_blank">
+                ⭐ View on GitHub
+            </a>
+            <h1>xlmerg</h1>
+            <div class="subtitle">Excel Row-by-Row Merger with Smart Data Preservation</div>
+        </div>
+        
+        <div class="content">
+            <div class="config-section">
+                <div class="config-title">⚙️ Merge Configuration</div>
+                <div class="config-item">
+                    <label>Sheets to Exclude (comma-separated)</label>
+                    <input type="text" id="excludeSheets" value="Instructions,Document Control" placeholder="Instructions,Document Control">
+                </div>
+                <div class="config-note">
+                    ℹ️ xlmerg uses the first column (Account name) as primary key and preserves old values when new cells are blank.
+                    <br>📖 <a href="https://github.com/iinaveedahmed/xlmerg#readme" target="_blank">Read full documentation</a>
+                </div>
+            </div>
+            
+            <div class="upload-section">
+                <div class="file-drop" id="oldFileDrop">
+                    <input type="file" id="oldFileInput" accept=".xlsx,.xls">
+                    <div class="file-icon">📁</div>
+                    <div class="file-label">Old File (with manual data)</div>
+                    <div class="file-help">Upload your existing file containing manual review entries and previous data</div>
+                </div>
+                
+                <div class="file-drop" id="newFileDrop">
+                    <input type="file" id="newFileInput" accept=".xlsx,.xls">
+                    <div class="file-icon">📥</div>
+                    <div class="file-label">New File (Vanta export)</div>
+                    <div class="file-help">Upload the fresh export file from Vanta.com or your access management system</div>
+                </div>
+            </div>
+            
+            <div class="merge-section">
+                <button class="merge-button" id="mergeButton" disabled>
+                    🚀 Merge Files Row by Row
+                </button>
+            </div>
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Initializing merge process...</div>
+            </div>
+            
+            <div class="results" id="results">
+                <div class="stats-grid" id="statsGrid"></div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #faad14;"></div>
+                        <span>Updated from new file</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #52c41a;"></div>
+                        <span>New rows/columns added</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff7875;"></div>
+                        <span>Orphaned rows (old file only)</span>
+                    </div>
+                </div>
+                
+                <div class="changes-section">
+                    <div class="changes-header">
+                        <span>📋</span>
+                        <h3>Merge Details</h3>
+                    </div>
+                    <div id="changesList"></div>
+                </div>
+                
+                <div class="download-section" id="downloadSection">
+                    <h3>✅ Merge Complete!</h3>
+                    <p>Your merged file is ready with proper row-by-row processing and blank cell handling.</p>
+                    <button class="download-button" id="downloadButton">
+                        💾 Download Merged File
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>
+                Made with ❤️ by <a href="https://github.com/iinaveedahmed/xlmerg" target="_blank">xlmerg</a> | 
+                © 2025 INATIQO PTY LTD | 
+                <a href="https://github.com/iinaveedahmed/xlmerg#readme" target="_blank">Documentation</a> | 
+                <a href="https://github.com/iinaveedahmed/xlmerg/issues" target="_blank">Report Issues</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let oldFileData = null;
+        let newFileData = null;
+        let mergedWorkbook = null;
+        
+        // Initialize file upload handlers
+        function initializeFileUploads() {
+            // Old file upload
+            const oldFileInput = document.getElementById('oldFileInput');
+            const oldFileDrop = document.getElementById('oldFileDrop');
+            
+            oldFileDrop.addEventListener('click', (e) => {
+                if (e.target !== oldFileInput) {
+                    oldFileInput.click();
+                }
+            });
+            
+            oldFileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0], 'old');
+                }
+            });
+            
+            // New file upload
+            const newFileInput = document.getElementById('newFileInput');
+            const newFileDrop = document.getElementById('newFileDrop');
+            
+            newFileDrop.addEventListener('click', (e) => {
+                if (e.target !== newFileInput) {
+                    newFileInput.click();
+                }
+            });
+            
+            newFileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0], 'new');
+                }
+            });
+            
+            // Drag and drop for old file
+            setupDragDrop(oldFileDrop, 'old');
+            
+            // Drag and drop for new file
+            setupDragDrop(newFileDrop, 'new');
+        }
+        
+        function setupDragDrop(dropElement, type) {
+            dropElement.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropElement.classList.add('dragover');
+            });
+            
+            dropElement.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropElement.classList.remove('dragover');
+            });
+            
+            dropElement.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropElement.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0], type);
+                }
+            });
+        }
+        
+        function handleFile(file, type) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                alert('Please upload Excel files only (.xlsx or .xls)');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                    
+                    if (type === 'old') {
+                        oldFileData = workbook;
+                        updateFileStatus('oldFileDrop', file.name, '✅');
+                    } else {
+                        newFileData = workbook;
+                        updateFileStatus('newFileDrop', file.name, '✅');
+                    }
+                    
+                    checkReadyState();
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+        
+        function updateFileStatus(dropId, fileName, icon) {
+            const drop = document.getElementById(dropId);
+            drop.classList.add('has-file');
+            drop.querySelector('.file-icon').textContent = icon;
+            drop.querySelector('.file-help').textContent = `✓ ${fileName}`;
+        }
+        
+        function checkReadyState() {
+            const button = document.getElementById('mergeButton');
+            if (oldFileData && newFileData) {
+                button.disabled = false;
+                button.textContent = '🚀 Ready to Merge Files';
+            }
+        }
+        
+        function isBlankCell(value) {
+            return value === null || 
+                   value === undefined || 
+                   value === '' || 
+                   (typeof value === 'string' && value.trim() === '') ||
+                   (typeof value === 'number' && isNaN(value));
+        }
+        
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+        
+        function showProgress() {
+            document.getElementById('progressContainer').style.display = 'block';
+        }
+        
+        function hideProgress() {
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+        
+        async function mergeFiles() {
+            if (!oldFileData || !newFileData) {
+                alert('Please upload both files first');
+                return;
+            }
+            
+            showProgress();
+            updateProgress(10, 'Initializing merge process...');
+            
+            const keyColumn = 0; // Always use first column as primary key
+            const excludeSheets = document.getElementById('excludeSheets').value
+                .split(',')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+            
+            const mergeReport = {
+                totalSheets: 0,
+                processedSheets: 0,
+                totalRows: 0,
+                preservedCells: 0,
+                updatedCells: 0,
+                newRows: 0,
+                changes: []
+            };
+            
+            mergedWorkbook = XLSX.utils.book_new();
+            
+            updateProgress(20, 'Processing sheets...');
+            
+            // Get all sheets from new file (authoritative structure)
+            const newSheets = newFileData.SheetNames;
+            mergeReport.totalSheets = newSheets.length;
+            
+            for (let i = 0; i < newSheets.length; i++) {
+                const sheetName = newSheets[i];
+                
+                // Skip excluded sheets
+                if (excludeSheets.includes(sheetName)) {
+                    console.log(`Skipping excluded sheet: ${sheetName}`);
+                    // Copy excluded sheet as-is from new file
+                    const newSheet = newFileData.Sheets[sheetName];
+                    XLSX.utils.book_append_sheet(mergedWorkbook, newSheet, sheetName);
+                    continue;
+                }
+                
+                updateProgress(20 + (i / newSheets.length) * 60, `Processing sheet: ${sheetName}`);
+                
+                const sheetReport = await processSheet(sheetName, keyColumn);
+                
+                mergeReport.processedSheets++;
+                mergeReport.totalRows += sheetReport.totalRows;
+                mergeReport.preservedCells += sheetReport.preservedCells;
+                mergeReport.updatedCells += sheetReport.updatedCells;
+                mergeReport.newRows += sheetReport.newRows;
+                mergeReport.changes.push(...sheetReport.changes);
+                
+                // Small delay to allow UI updates
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            updateProgress(90, 'Finalizing merged file...');
+            
+            // Add summary sheet
+            createSummarySheet(mergeReport);
+            
+            updateProgress(100, 'Merge completed successfully!');
+            
+            setTimeout(() => {
+                hideProgress();
+                displayResults(mergeReport);
+            }, 500);
+        }
+        
+        function processSheet(sheetName, keyColumn) {
+            return new Promise((resolve) => {
+                const sheetReport = {
+                    totalRows: 0,
+                    preservedCells: 0,
+                    updatedCells: 0,
+                    newRows: 0,
+                    changes: []
+                };
+                
+                // Get sheet data
+                const newSheet = newFileData.Sheets[sheetName];
+                const oldSheet = oldFileData.Sheets[sheetName];
+                
+                if (!newSheet) {
+                    console.log(`Sheet ${sheetName} not found in new file`);
+                    resolve(sheetReport);
+                    return;
+                }
+                
+                // Convert to arrays for processing
+                const newData = XLSX.utils.sheet_to_json(newSheet, { header: 1, defval: "" });
+                const oldData = oldSheet ? XLSX.utils.sheet_to_json(oldSheet, { header: 1, defval: "" }) : [];
+                
+                if (newData.length === 0) {
+                    resolve(sheetReport);
+                    return;
+                }
+                
+                // Get headers from both files
+                const newHeaders = newData[0] || [];
+                const oldHeaders = oldData.length > 0 ? oldData[0] || [] : [];
+                
+                // Create column mapping: newColumnIndex -> oldColumnIndex
+                const columnMapping = new Map();
+                
+                newHeaders.forEach((newHeader, newIndex) => {
+                    const oldIndex = oldHeaders.findIndex(oldHeader => 
+                        oldHeader && newHeader && 
+                        oldHeader.toString().trim().toLowerCase() === newHeader.toString().trim().toLowerCase()
+                    );
+                    
+                    if (oldIndex !== -1) {
+                        columnMapping.set(newIndex, oldIndex);
+                    }
+                });
+                
+                // Create lookup map for old data using key column
+                const oldDataMap = new Map();
+                if (oldData.length > 1) {
+                    for (let i = 1; i < oldData.length; i++) {
+                        const key = oldData[i][keyColumn];
+                        if (key && key.toString().trim()) {
+                            oldDataMap.set(key.toString().trim(), oldData[i]);
+                        }
+                    }
+                }
+                
+                // Prepare merged data with new structure
+                const mergedData = [];
+                
+                // Use new headers as the authoritative structure
+                mergedData.push([...newHeaders]);
+                
+                // Process each row from new data
+                for (let rowIndex = 1; rowIndex < newData.length; rowIndex++) {
+                    const newRow = newData[rowIndex] || [];
+                    const key = newRow[keyColumn];
+                    
+                    if (!key || !key.toString().trim()) {
+                        continue; // Skip rows without key
+                    }
+                    
+                    const keyStr = key.toString().trim();
+                    const oldRow = oldDataMap.get(keyStr) || [];
+                    const mergedRow = [];
+                    
+                    let isNewRow = !oldDataMap.has(keyStr);
+                    
+                    if (isNewRow) {
+                        sheetReport.newRows++;
+                        sheetReport.changes.push({
+                            sheet: sheetName,
+                            key: keyStr,
+                            type: 'new',
+                            message: 'New row added'
+                        });
+                    }
+                    
+                    // Process each column in the new structure
+                    for (let newColIndex = 0; newColIndex < newHeaders.length; newColIndex++) {
+                        const newValue = newColIndex < newRow.length ? newRow[newColIndex] : '';
+                        let oldValue = '';
+                        
+                        // Get corresponding old value using column mapping
+                        if (columnMapping.has(newColIndex)) {
+                            const oldColIndex = columnMapping.get(newColIndex);
+                            oldValue = oldColIndex < oldRow.length ? oldRow[oldColIndex] : '';
+                        }
+                        
+                        let finalValue = newValue;
+                        
+                        // Apply merge logic: blank new cells don't override old values
+                        if (isBlankCell(newValue) && !isBlankCell(oldValue)) {
+                            // Preserve old value when new cell is blank
+                            finalValue = oldValue;
+                            sheetReport.preservedCells++;
+                            // Don't log routine preservation - it's expected behavior
+                        } else if (!isBlankCell(newValue) && newValue !== oldValue && !isNewRow && columnMapping.has(newColIndex)) {
+                            // Update with new value (only for mapped columns)
+                            sheetReport.updatedCells++;
+                            
+                            sheetReport.changes.push({
+                                sheet: sheetName,
+                                key: keyStr,
+                                column: newHeaders[newColIndex] || `Col${newColIndex}`,
+                                type: 'updated',
+                                oldValue: oldValue,
+                                newValue: newValue,
+                                finalValue: finalValue
+                            });
+                        } else if (!columnMapping.has(newColIndex) && !isBlankCell(newValue)) {
+                            // New column with data (only log if value is meaningful)
+                            if (newValue && newValue.toString().trim() !== '') {
+                                sheetReport.changes.push({
+                                    sheet: sheetName,
+                                    key: keyStr,
+                                    column: newHeaders[newColIndex] || `Col${newColIndex}`,
+                                    type: 'new_column',
+                                    oldValue: '',
+                                    newValue: newValue,
+                                    finalValue: finalValue
+                                });
+                            }
+                        }
+                        
+                        mergedRow.push(finalValue);
+                    }
+                    
+                    mergedData.push(mergedRow);
+                    sheetReport.totalRows++;
+                }
+                
+                // Add rows that exist in old file but not in new file (at the bottom)
+                oldDataMap.forEach((oldRowData, oldKey) => {
+                    // Check if this key was already processed from new data
+                    let keyFoundInNew = false;
+                    for (let rowIndex = 1; rowIndex < newData.length; rowIndex++) {
+                        const newRowKey = newData[rowIndex][keyColumn];
+                        if (newRowKey && newRowKey.toString().trim() === oldKey) {
+                            keyFoundInNew = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!keyFoundInNew) {
+                        // This row exists in old file but not in new file - add it to the bottom
+                        const orphanedRow = [];
+                        
+                        // Map old row data to new structure
+                        for (let newColIndex = 0; newColIndex < newHeaders.length; newColIndex++) {
+                            let value = '';
+                            
+                            if (columnMapping.has(newColIndex)) {
+                                const oldColIndex = columnMapping.get(newColIndex);
+                                value = oldColIndex < oldRowData.length ? oldRowData[oldColIndex] : '';
+                            }
+                            // For unmapped columns (new columns), leave empty
+                            
+                            orphanedRow.push(value);
+                        }
+                        
+                        mergedData.push(orphanedRow);
+                        sheetReport.totalRows++;
+                        
+                        sheetReport.changes.push({
+                            sheet: sheetName,
+                            key: oldKey,
+                            type: 'orphaned',
+                            message: 'Row from old file not found in new file (added to bottom)'
+                        });
+                    }
+                });
+                
+                // Create merged sheet
+                const mergedSheet = XLSX.utils.aoa_to_sheet(mergedData);
+                XLSX.utils.book_append_sheet(mergedWorkbook, mergedSheet, sheetName);
+                
+                console.log(`Sheet ${sheetName}: ${sheetReport.totalRows} rows, ${sheetReport.preservedCells} preserved, ${sheetReport.updatedCells} updated, ${sheetReport.newRows} new`);
+                
+                resolve(sheetReport);
+            });
+        }
+        
+        function createSummarySheet(report) {
+            const summaryData = [
+                ['xlmerg - Excel Merge Summary Report'],
+                [''],
+                ['Generated:', new Date().toLocaleString()],
+                ['GitHub:', 'https://github.com/iinaveedahmed/xlmerg'],
+                [''],
+                ['Statistics:'],
+                ['Total Sheets:', report.totalSheets],
+                ['Processed Sheets:', report.processedSheets],
+                ['Total Rows:', report.totalRows],
+                ['Preserved Cells:', report.preservedCells],
+                ['Updated Cells:', report.updatedCells],
+                ['New Rows:', report.newRows],
+                ['Total Changes:', report.changes.length],
+                [''],
+                ['Merge Configuration:'],
+                ['Key Column:', '0 (Account name - first column)'],
+                ['Blank Rule:', 'Preserve old values (blank new cells don\'t override)'],
+                ['Excluded Sheets:', document.getElementById('excludeSheets').value],
+                [''],
+                ['Change Details:'],
+                ['Sheet', 'Key', 'Column', 'Type', 'Old Value', 'New Value', 'Final Value']
+            ];
+            
+            // Add change details (limit to first 1000 for performance)
+            const changes = report.changes.slice(0, 1000);
+            changes.forEach(change => {
+                summaryData.push([
+                    change.sheet || '',
+                    change.key || '',
+                    change.column || '',
+                    change.type || '',
+                    change.oldValue || '',
+                    change.newValue || '',
+                    change.finalValue || ''
+                ]);
+            });
+            
+            if (report.changes.length > 1000) {
+                summaryData.push(['...', `And ${report.changes.length - 1000} more changes`]);
+            }
+            
+            const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(mergedWorkbook, summarySheet, 'xlmerg Summary');
+        }
+        
+        function displayResults(report) {
+            const resultsDiv = document.getElementById('results');
+            const statsGrid = document.getElementById('statsGrid');
+            const changesList = document.getElementById('changesList');
+            
+            // Display statistics
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${report.processedSheets}</div>
+                    <div class="stat-label">Sheets Processed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${report.totalRows}</div>
+                    <div class="stat-label">Total Rows</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${report.preservedCells}</div>
+                    <div class="stat-label">Cells Preserved</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${report.updatedCells}</div>
+                    <div class="stat-label">Cells Updated</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${report.newRows}</div>
+                    <div class="stat-label">New Rows Added</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${report.changes.length}</div>
+                    <div class="stat-label">Total Changes</div>
+                </div>
+            `;
+            
+            // Display change details (limit for performance)
+            const displayChanges = report.changes.slice(0, 100);
+            let changesHTML = '';
+            
+            displayChanges.forEach(change => {
+                const changeClass = `change-${change.type}`;
+                
+                if (change.type === 'new') {
+                    changesHTML += `
+                        <div class="change-item ${changeClass}">
+                            🆕 ${change.sheet}: "${change.key}" - ${change.message}
+                        </div>
+                    `;
+                } else if (change.type === 'new_column') {
+                    changesHTML += `
+                        <div class="change-item change-new">
+                            ✨ ${change.sheet}: "${change.key}" - New column "${change.column}" = "${change.newValue}"
+                        </div>
+                    `;
+                } else if (change.type === 'orphaned') {
+                    changesHTML += `
+                        <div class="change-item" style="border-left-color: #ff7875; background: #fff2f0;">
+                            🔍 ${change.sheet}: "${change.key}" - ${change.message}
+                        </div>
+                    `;
+                } else if (change.type === 'updated') {
+                    changesHTML += `
+                        <div class="change-item ${changeClass}">
+                            🔄 ${change.sheet}: "${change.key}" - ${change.column}
+                            <br>&nbsp;&nbsp;&nbsp;&nbsp;Old: "${change.oldValue}" → New: "${change.newValue}"
+                        </div>
+                    `;
+                }
+            });
+            
+            if (report.changes.length > 100) {
+                changesHTML += `
+                    <div class="change-item" style="text-align: center; font-style: italic;">
+                        ... and ${report.changes.length - 100} more changes (see xlmerg Summary sheet for complete details)
+                    </div>
+                `;
+            }
+            
+            changesList.innerHTML = changesHTML || '<div style="text-align: center; color: #666;">No changes detected</div>';
+            
+            resultsDiv.style.display = 'block';
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function downloadMergedFile() {
+            if (!mergedWorkbook) {
+                alert('No merged file available for download');
+                return;
+            }
+            
+            const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const filename = `xlmerg_${timestamp}.xlsx`;
+            
+            try {
+                XLSX.writeFile(mergedWorkbook, filename);
+            } catch (error) {
+                alert('Error downloading file: ' + error.message);
+            }
+        }
+        
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFileUploads();
+            
+            // Setup merge button
+            document.getElementById('mergeButton').addEventListener('click', mergeFiles);
+            
+            // Setup download button
+            document.getElementById('downloadButton').addEventListener('click', downloadMergedFile);
+        });
+    </script>
+</body>
+</html>

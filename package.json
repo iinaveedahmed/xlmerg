@@ -1,0 +1,33 @@
+{
+  "name": "xlmerg",
+  "version": "1.0.0",
+  "description": "Excel Row-by-Row Merger with smart data preservation - perfect for Vanta.com access reviews",
+  "main": "index.html",
+  "keywords": [
+    "xlmerg",
+    "excel",
+    "merge",
+    "xlsx",
+    "vanta",
+    "access-review",
+    "compliance",
+    "audit",
+    "html",
+    "javascript",
+    "browser-based"
+  ],
+  "author": {
+    "name": "INATIQO PTY LTD",
+    "email": "contact@inatiqo.com",
+    "url": "https://github.com/iinaveedahmed"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iinaveedahmed/xlmerg.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iinaveedahmed/xlmerg/issues"
+  },
+  "homepage": "https://iinaveedahmed.github.io/xlmerg"
+}
